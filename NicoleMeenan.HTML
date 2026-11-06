@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nicole Meenan // Creative Game Designer Portfolio</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        arcade: {
+                            bg: '#0f0a15',
+                            card: '#181124',
+                            border: '#2a1e3f',
+                            green: '#39ff14',
+                            greenHover: '#2ed40e',
+                            greenDim: '#1f850d',
+                            greenBg: 'rgba(57, 255, 20, 0.08)',
+                            accent: '#a855f7',
+                            pink: '#ff2a85',
+                            textLight: '#f3f4f6',
+                            textMuted: '#9ca3af',
+                            textDark: '#111827'
+                        }
+                    },
+                    fontFamily: {
+                        pixel: ['"Press Start 2P"', 'monospace'],
+                        sans: ['Inter', 'sans-serif']
+                    },
+                    boxShadow: {
+                        glow: '0 0 15px rgba(57, 255, 20, 0.4)',
+                        glowStrong: '0 0 25px rgba(57, 255, 20, 0.7)',
+                        glowPurple: '0 0 20px rgba(168, 85, 247, 0.4)',
+                        pixelCard: '4px 4px 0px 0px #2a1e3f'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            background-color: #0f0a15;
+            background-image: 
+                linear-gradient(to right, rgba(42, 30, 63, 0.3) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(42, 30, 63, 0.3) 1px, transparent 1px);
+            background-size: 32px 32px;
+            color: #f3f4f6;
+        }
+
+        .crt-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 99;
+            pointer-events: none;
+            opacity: 0.35;
+        }
+
+        .scanline {
+            width: 100%;
+            height: 100px;
+            z-index: 98;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgba(57, 255, 20, 0.03) 50%, rgba(0, 0, 0, 0) 100%);
+            opacity: 0.6;
+            position: absolute;
+            bottom: 100%;
+            pointer-events: none;
+            animation: scanline 8s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { top: -100px; }
+            100% { top: 100%; }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f0a15;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a1e3f;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #39ff14;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased min-h-screen selection:bg-arcade-green selection:text-arcade-bg relative overflow-x-hidden">
+
+    <!-- CRT Overlay -->
+    <div class="crt-overlay"></div>
+    <div class="scanline"></div>
+
+    <!-- AUDIO SFX CONTROLLER -->
+    <script>
+        const sfx = {
+            enabled: true,
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            },
+            playClick() {
+                if (!this.enabled) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.05);
+            },
+            playSelect() {
+                if (!this.enabled) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.06);
+                gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.12);
+            }
+        };
+
+        function toggleAudio() {
+            sfx.enabled = !sfx.enabled;
+            const btn = document.getElementById('sfx-btn');
+            if (sfx.enabled) {
+                btn.innerHTML = '<i class="fa-solid font-bold fa-volume-high text-arcade-green"></i>';
+                sfx.playSelect();
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-volume-xmark text-arcade-textMuted"></i>';
+            }
+        }
+    </script>
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="sticky top-0 z-50 bg-arcade-bg/90 backdrop-blur-md border-b border-arcade-border/80 px-4 lg:px-8 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <a href="#hero" onclick="sfx.playClick()" class="flex items-center space-x-3 group">
+                <div class="w-9 h-9 rounded bg-arcade-card border border-arcade-green/40 flex items-center justify-center text-arcade-green font-pixel text-xs group-hover:border-arcade-green group-hover:shadow-glow transition-all">
+                    <i class="fa-solid fa-gamepad text-base"></i>
+                </div>
+                <div>
+                    <span class="font-pixel text-xs sm:text-sm text-arcade-green tracking-wider block">NICOLE MEENAN</span>
+                    <span class="text-[10px] uppercase font-mono tracking-widest text-arcade-textMuted hidden sm:block">Creative Designer</span>
+                </div>
+            </a>
+
+            <nav class="hidden md:flex items-center space-x-6 font-mono text-xs tracking-wider">
+                <a href="#profile" onclick="sfx.playClick()" class="hover:text-arcade-green transition-colors flex items-center gap-1.5"><span class="text-arcade-green font-pixel text-[9px]">LVL 1</span> ABOUT</a>
+                <a href="#education" onclick="sfx.playClick()" class="hover:text-arcade-green transition-colors flex items-center gap-1.5"><span class="text-arcade-green font-pixel text-[9px]">LVL 2</span> EDUCATION</a>
+                <a href="#experience" onclick="sfx.playClick()" class="hover:text-arcade-green transition-colors flex items-center gap-1.5"><span class="text-arcade-green font-pixel text-[9px]">LVL 3</span> EXPERIENCE</a>
+                <a href="#projects" onclick="sfx.playClick()" class="hover:text-arcade-green transition-colors flex items-center gap-1.5"><span class="text-arcade-green font-pixel text-[9px]">LVL 4</span> WORK</a>
+                <a href="#contact" onclick="sfx.playClick()" class="hover:text-arcade-green transition-colors flex items-center gap-1.5"><span class="text-arcade-green font-pixel text-[9px]">LVL 5</span> CONTACT</a>
+            </nav>
+
+            <div class="flex items-center space-x-3">
+                <button id="sfx-btn" onclick="toggleAudio()" title="Toggle Sound Effects" class="p-2 rounded bg-arcade-card border border-arcade-border hover:border-arcade-green/50 text-xs transition-all">
+                    <i class="fa-solid fa-volume-high text-arcade-green"></i>
+                </button>
+                <a href="NicoleMeenanResume.pdf" download="NicoleMeenanResume.pdf" onclick="sfx.playSelect()" class="px-3.5 py-1.5 rounded text-xs font-pixel bg-arcade-green text-arcade-textDark font-bold hover:bg-arcade-greenHover hover:shadow-glow transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-file-pdf"></i> DOWNLOAD CV
+                </a>
+                <button onclick="toggleMobileMenu(); sfx.playClick();" class="md:hidden p-2 text-arcade-green focus:outline-none">
+                    <i id="menu-icon" class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="hidden md:hidden pt-4 pb-2 border-t border-arcade-border/60 mt-3 space-y-2 font-mono text-xs">
+            <a href="#profile" onclick="toggleMobileMenu(); sfx.playClick()" class="block py-2 px-3 hover:bg-arcade-card rounded text-arcade-textLight hover:text-arcade-green">LVL 1 // About Profile</a>
+            <a href="#education" onclick="toggleMobileMenu(); sfx.playClick()" class="block py-2 px-3 hover:bg-arcade-card rounded text-arcade-textLight hover:text-arcade-green">LVL 2 // Education & Awards</a>
+            <a href="#experience" onclick="toggleMobileMenu(); sfx.playClick()" class="block py-2 px-3 hover:bg-arcade-card rounded text-arcade-textLight hover:text-arcade-green">LVL 3 // Professional Experience</a>
+            <a href="#projects" onclick="toggleMobileMenu(); sfx.playClick()" class="block py-2 px-3 hover:bg-arcade-card rounded text-arcade-textLight hover:text-arcade-green">LVL 4 // Featured Projects</a>
+            <a href="#contact" onclick="toggleMobileMenu(); sfx.playClick()" class="block py-2 px-3 hover:bg-arcade-card rounded text-arcade-textLight hover:text-arcade-green">LVL 5 // Select Player (Contact)</a>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-20">
+
+        <!-- HERO SECTION -->
+        <section id="hero" class="relative pt-6 pb-12 md:py-16 text-center lg:text-left">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                <div class="lg:col-span-8 space-y-6">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-arcade-card border border-arcade-green/30 text-xs font-mono">
+                        <span class="w-2 h-2 rounded-full bg-arcade-green animate-pulse"></span>
+                        <span class="text-arcade-green font-semibold">STATUS:</span> 
+                        <span class="text-arcade-textMuted">Available for Creative Roles Within All Industries</span>
+                    </div>
+
+                    <h1 class="font-pixel text-2xl sm:text-4xl lg:text-5xl text-arcade-textLight leading-tight tracking-wide">
+                        Nicole Meenan
+                    </h1>
+                    <h2 class="font-pixel text-xs sm:text-sm lg:text-base text-arcade-green tracking-widest uppercase">
+                        &lt; Creative Level, Mechanic &amp; Game Designer &gt;
+                    </h2>
+
+                    <p class="text-arcade-textMuted text-base sm:text-lg max-w-2xl font-sans leading-relaxed">
+                        Abertay 2:1 Graduate & TIGA Award Nominee. Experienced in managing sprint schedules, bridging technical/creative pipelines, and delivering interactive projects for high-profile clients like Rockstar Games.
+                    </p>
+
+                    <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
+                        <a href="#projects" onclick="sfx.playSelect()" class="px-6 py-3 rounded bg-arcade-green text-arcade-textDark font-pixel text-xs font-bold hover:bg-arcade-greenHover hover:shadow-glow transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-play"></i> VIEW PROJECTS
+                        </a>
+                        <a href="NicoleMeenanResume.pdf" download="NicoleMeenanResume.pdf" onclick="sfx.playSelect()" class="px-6 py-3 rounded bg-arcade-card border border-arcade-accent/50 hover:border-arcade-accent text-arcade-accent font-mono text-xs font-semibold hover:shadow-glowPurple transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-file-pdf"></i> DOWNLOAD CV (PDF)
+                        </a>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-4 flex justify-center">
+                    <div class="w-full max-w-sm bg-arcade-card border-2 border-arcade-border rounded-xl p-6 relative overflow-hidden shadow-pixelCard group hover:border-arcade-green/60 transition-all">
+                        <div class="absolute top-2 right-3 text-[10px] font-pixel text-arcade-textMuted opacity-60">PLAYER_STAT</div>
+                        <div class="flex items-center space-x-4 mb-4">
+                            <div class="relative">
+                                <img src="image_39566e.jpg" alt="Nicole Meenan Headshot" class="w-16 h-16 rounded-lg object-cover border-2 border-arcade-green/60 group-hover:shadow-glow transition-all">
+                                <span class="absolute -bottom-1 -right-1 bg-arcade-green text-arcade-textDark text-[9px] font-pixel px-1.5 py-0.5 rounded">LVL 99</span>
+                            </div>
+                            <div>
+                                <h3 class="font-pixel text-xs text-arcade-textLight">NICOLE M.</h3>
+                                <p class="text-xs text-arcade-green font-mono">Specialist: Player Experience & Design</p>
+                                <p class="text-[11px] text-arcade-textMuted font-mono">Location: Salford, UK</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2 text-xs font-mono pt-2 border-t border-arcade-border/60">
+                            <div class="flex justify-between">
+                                <span class="text-arcade-textMuted">Degree:</span>
+                                <span class="text-arcade-green font-bold">Abertay University 2:1</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-arcade-textMuted">Key Client:</span>
+                                <span class="text-arcade-textLight font-semibold">Rockstar Games</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-arcade-textMuted">Recognition:</span>
+                                <span class="text-arcade-textLight font-semibold">TIGA Nominee</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- LEVEL 1: PROFILE / ABOUT ME -->
+        <section id="profile" class="space-y-6 pt-4">
+            <div class="flex items-center space-x-3 border-b border-arcade-border pb-3">
+                <span class="px-2.5 py-1 bg-arcade-green text-arcade-textDark font-pixel text-xs rounded">LVL 1</span>
+                <h2 class="font-pixel text-lg sm:text-xl text-arcade-textLight">PLAYER PROFILE</h2>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div class="lg:col-span-4 flex flex-col items-center">
+                    <div class="w-full bg-arcade-card border border-arcade-border rounded-xl p-5 space-y-4">
+                        <div class="relative mx-auto max-w-[220px]">
+                            <div class="aspect-square rounded-lg overflow-hidden border-2 border-arcade-green/40 shadow-glow">
+                                <img src="image_39566e.jpg" alt="Nicole Meenan" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+
+                        <div class="pt-2 space-y-1 font-sans text-xs text-arcade-textMuted">
+                            <p class="font-semibold text-arcade-textLight">Creative Level, Mechanic and Gameplay Designer</p>
+                            <ul class="space-y-1.5 pt-2 font-mono text-[11px]">
+                                <li class="flex items-center gap-2"><i class="fa-solid fa-diagram-project text-arcade-green"></i> Agile & Scrum Pipelines</li>
+                                <li class="flex items-center gap-2"><i class="fa-solid fa-users text-arcade-green"></i> Teamwork & Jira</li>
+                                <li class="flex items-center gap-2"><i class="fa-solid fa-code text-arcade-green"></i> Unity & Unreal Engine</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-8">
+                    <div class="bg-arcade-card border border-arcade-border rounded-xl p-6 space-y-4 h-full relative">
+                        <div class="flex items-center justify-between border-b border-arcade-border/80 pb-3">
+                            <div class="flex items-center space-x-2">
+                                <span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span>
+                                <span class="w-3 h-3 rounded-full bg-yellow-500 inline-block"></span>
+                                <span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span>
+                            </div>
+                            <span class="text-[10px] font-pixel text-arcade-green">PLAYER_BIO</span>
+                        </div>
+
+                        <div class="space-y-4 text-arcade-textLight font-sans text-sm sm:text-base leading-relaxed pt-1">
+                            <p>
+                                Creative Designer with a 2:1 degree from Abertay University and a TIGA Graduate of the Year nomination in Production and Enterprise. Proven track record of bridging technical and creative pipelines while working with teams to deliver polished gameplay to renowned clients like Rockstar Games.
+                            </p>
+                            <p>
+                                Adept at sprint planning, milestone tracking, resource allocation, and hands-on design across Unity and Unreal Engine. Combines strong leadership with technical execution in C#, UI/UX design, and 2D/3D asset integration.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- LEVEL 2: EDUCATION -->
+        <section id="education" class="space-y-6 pt-4">
+            <div class="flex items-center space-x-3 border-b border-arcade-border pb-3">
+                <span class="px-2.5 py-1 bg-arcade-green text-arcade-textDark font-pixel text-xs rounded">LVL 2</span>
+                <h2 class="font-pixel text-lg sm:text-xl text-arcade-textLight">EDUCATION & HONOURS</h2>
+            </div>
+
+            <div class="bg-arcade-card border border-arcade-border rounded-xl p-6 md:p-8 hover:border-arcade-green/60 transition-all space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-arcade-border/60 pb-6">
+                    <div class="space-y-1">
+                        <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded bg-arcade-green/10 text-arcade-green font-pixel text-[10px]">
+                            <i class="fa-solid fa-graduation-cap"></i> HIGHER EDUCATION
+                        </div>
+                        <h3 class="font-pixel text-lg text-arcade-textLight">ABERTAY UNIVERSITY</h3>
+                        <p class="text-sm font-mono text-arcade-green font-semibold">BA (Hons) Game Design and Production (2:1) — Sep 2021 – Jul 2025</p>
+                    </div>
+                </div>
+
+                <div class="bg-arcade-bg/80 border-2 border-yellow-500/60 rounded-xl p-5 space-y-3 relative overflow-hidden shadow-glow">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 rounded-lg bg-yellow-500/10 border border-yellow-500 flex items-center justify-center text-yellow-400 text-2xl shrink-0">
+                            <i class="fa-solid fa-trophy animate-bounce"></i>
+                        </div>
+                        <div class="space-y-1">
+                            <span class="text-[10px] font-pixel text-yellow-400 tracking-wider block">HONOURS & AWARDS</span>
+                            <h4 class="font-pixel text-xs sm:text-sm text-arcade-textLight">TIGA Nomination for Graduate of the Year Award</h4>
+                            <p class="text-xs font-mono text-arcade-green">Category: Production and Enterprise</p>
+                            <p class="text-xs font-sans text-arcade-textMuted pt-1 leading-relaxed">
+                                Recognized by TIGA for project management and ambition in solo project 'Ophelia'.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- LEVEL 3: PROFESSIONAL EXPERIENCE -->
+        <section id="experience" class="space-y-6 pt-4">
+            <div class="flex items-center space-x-3 border-b border-arcade-border pb-3">
+                <span class="px-2.5 py-1 bg-arcade-green text-arcade-textDark font-pixel text-xs rounded">LVL 3</span>
+                <h2 class="font-pixel text-lg sm:text-xl text-arcade-textLight">PROFESSIONAL EXPERIENCE</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Spice&Grind -->
+                <div class="bg-arcade-card border border-arcade-border p-6 rounded-xl space-y-3 hover:border-arcade-green/50 transition-all">
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-pixel text-xs text-arcade-textLight">SPICE&GRIND</h3>
+                        <span class="text-[10px] font-mono text-arcade-green">May 2026 - Present</span>
+                    </div>
+                    <p class="text-xs font-mono text-arcade-green">Solo Trailer Manager & Operator | Manchester</p>
+                    <p class="text-xs font-sans text-arcade-textMuted leading-relaxed">
+                        Sole face and manager of daily operations for an independent coffee trailer, working Monday to Friday under zero supervision. Maintain functionality of site, daily inventory tracking, stock forecasting, and health/safety compliance.
+                    </p>
+                </div>
+
+                <!-- Blue Palm Coffee -->
+                <div class="bg-arcade-card border border-arcade-border p-6 rounded-xl space-y-3 hover:border-arcade-green/50 transition-all">
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-pixel text-xs text-arcade-textLight">BLUE PALM COFFEE</h3>
+                        <span class="text-[10px] font-mono text-arcade-green">Jan 2026 - Jun 2026</span>
+                    </div>
+                    <p class="text-xs font-mono text-arcade-green">Barista & Shift Operator | Manchester</p>
+                    <p class="text-xs font-sans text-arcade-textMuted leading-relaxed">
+                        Independently managed daily operations of a high-volume outdoor trailer, maintaining strict quality control, inventory auditing, stock control, and supplier tracking to guarantee zero service downtime.
+                    </p>
+                </div>
+
+                <!-- Salt and Pine -->
+                <div class="bg-arcade-card border border-arcade-border p-6 rounded-xl space-y-3 hover:border-arcade-green/50 transition-all">
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-pixel text-xs text-arcade-textLight">SALT AND PINE</h3>
+                        <span class="text-[10px] font-mono text-arcade-green">Apr-Aug 2025 & Dec 2025-Jan 2026</span>
+                    </div>
+                    <p class="text-xs font-mono text-arcade-green">Team Leader & Shack Manager | St Andrews</p>
+                    <p class="text-xs font-sans text-arcade-textMuted leading-relaxed">
+                        Led a frontline service team of three, managing task delegation during peak periods. Trusted with complete operational oversight of an isolated location, managing logistics and facility upkeep.
+                    </p>
+                </div>
+
+                <!-- Invercarse Hotel -->
+                <div class="bg-arcade-card border border-arcade-border p-6 rounded-xl space-y-3 hover:border-arcade-green/50 transition-all">
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-pixel text-xs text-arcade-textLight">INVERCARSE HOTEL</h3>
+                        <span class="text-[10px] font-mono text-arcade-green">Jul 2022 - Feb 2024</span>
+                    </div>
+                    <p class="text-xs font-mono text-arcade-green">Senior Events Staff & Trainer | Dundee</p>
+                    <p class="text-xs font-sans text-arcade-textMuted leading-relaxed">
+                        Spearheaded top-table service execution at large corporate functions and weddings. Trained and mentored incoming staff, designing onboarding workflows to maintain high quality standards.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- LEVEL 4: PROJECTS PORTFOLIO -->
+        <section id="projects" class="space-y-6 pt-4">
+            <div class="flex flex-wrap items-center justify-between gap-4 border-b border-arcade-border pb-3">
+                <div class="flex items-center space-x-3">
+                    <span class="px-2.5 py-1 bg-arcade-green text-arcade-textDark font-pixel text-xs rounded">LVL 4</span>
+                    <h2 class="font-pixel text-lg sm:text-xl text-arcade-textLight">PROJECT PORTFOLIO</h2>
+                </div>
+
+                <!-- Filter Buttons -->
+                <div class="flex flex-wrap items-center gap-2 font-mono text-xs">
+                    <button onclick="filterProjects('all'); sfx.playClick()" class="filter-btn active px-3 py-1 rounded border border-arcade-green bg-arcade-green/20 text-arcade-green font-semibold">ALL</button>
+                    <button onclick="filterProjects('professional'); sfx.playClick()" class="filter-btn px-3 py-1 rounded border border-arcade-border hover:border-arcade-green text-arcade-textMuted hover:text-arcade-textLight">PROFESSIONAL</button>
+                    <button onclick="filterProjects('solo'); sfx.playClick()" class="filter-btn px-3 py-1 rounded border border-arcade-border hover:border-arcade-green text-arcade-textMuted hover:text-arcade-textLight">SOLO & HONORS</button>
+                </div>
+            </div>
+
+            <!-- Project Grid -->
+            <div id="project-grid" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                <!-- 1. Ophelia -->
+                <div class="project-card bg-arcade-card border border-arcade-border rounded-xl overflow-hidden hover:border-arcade-green transition-all flex flex-col group" data-category="solo">
+                    <div class="relative aspect-video overflow-hidden bg-black/60">
+                        <img src="Screenshot 2025-02-20 164753.png" 
+                             alt="Ophelia - Stage Spotlight" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-gradient-to-t from-arcade-card via-transparent to-transparent"></div>
+                        <span class="absolute top-3 left-3 bg-arcade-green text-arcade-textDark font-pixel text-[9px] px-2 py-0.5 rounded shadow">GOTHIC HORROR RPG</span>
+                    </div>
+                    <div class="p-6 space-y-4 flex-1 flex flex-col justify-between">
+                        <div class="space-y-2">
+                            <h3 class="font-pixel text-base text-arcade-textLight group-hover:text-arcade-green transition-colors">OPHELIA</h3>
+                            <p class="text-xs font-mono text-arcade-green">Role: Solo Developer (Unity C#, 2D Art, Narrative, Audio)</p>
+                            <p class="text-sm font-sans text-arcade-textMuted leading-relaxed">
+                                Independently designed and developed a complete game exploring societal expectations placed on women through a surreal psychological-horror experience. Nominated for the TIGA Graduate of the Year Award for Production and Enterprise.
+                            </p>
+                        </div>
+                        <div class="space-y-4 pt-2">
+                            <div class="flex flex-wrap gap-1.5 font-mono text-[11px]">
+                                <span class="px-2 py-0.5 rounded bg-arcade-bg border border-arcade-border text-arcade-textLight">Unity C#</span>
+                                <span class="px-2 py-0.5 rounded bg-arcade-bg border border-arcade-border text-arcade-textLight">Pixel Art</span>
+                                <span class="px-2 py-0.5 rounded bg-arcade-bg border border-arcade-border text-arcade-textLight">TIGA Nominee</span>
+                            </div>
+                            <div class="pt-2 border-t border-arcade-border/60 grid grid-cols-3 gap-2">
+                                <button onclick="openProjectModal('ophelia'); sfx.playSelect()" class="px-2 py-1.5 rounded bg-arcade-card border border-arcade-green/40 hover:border-arcade-green text-arcade-green font-pixel text-[9px] hover:shadow-glow transition-all flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-eye"></i> DETAILS
+                                </button>
+                                <a href="Ophelia_Project_Brief.pdf" download="Ophelia_Project_Brief.pdf" onclick="sfx.playSelect()" class="px-2 py-1.5 rounded bg-arcade-green/10 border border-arcade-green text-arcade-green font-pixel text-[9px] hover:bg-arcade-green hover:text-arcade-textDark transition-all flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-file-pdf"></i> PDF
+                                </a>
+                                <a href="https://nicolemeenan.itch.io/ophelia" target="_blank" onclick="sfx.playSelect()" class="px-2 py-1.5 rounded bg-arcade-green/10 border border-arcade-green text-arcade-green font-pixel text-[9px] hover:bg-arcade-green hover:text-arcade-textDark transition-all flex items-center justify-center gap-1">
+                                    <i class="fa-brands fa-itch-io"></i> ITCH.IO
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Black Mass -->
+                <div class="project-card bg-arcade-card border border-arcade-border rounded-xl overflow-hidden hover:border-arcade-green transition-all flex flex-col group" data-category="professional">
+                    <div class="relative aspect-video overflow-hidden bg-black/60">
+                        <img src="bfI9s_.png" 
+                             alt="Black Mass - Staircase Interior" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-gradient-to-t from-arcade-card via-transparent to-transparent"></div>
+                        <span class="absolute top-3 left-3 bg-arcade-green text-arcade-textDark font-pixel text-[9px] px-2 py-0.5 rounded shadow">ROCKSTAR GAMES BRIEF</span>
+                    </div>
+                    <div class="p-6 space-y-4 flex-1 flex flex-col justify-between">
+                        <div class="space-y-2">
+                            <h3 class="font-pixel text-base text-arcade-textLight group-hover:text-arcade-green transition-colors">BLACK MASS</h3>
+                            <p class="text-xs font-mono text-arcade-green">Role: 3D Artist, Animator, Puzzle Designer & Trailer Producer</p>
+                            <p class="text-sm font-sans text-arcade-textMuted leading-relaxed">
+                                Developed a first-person psychological horror game for Rockstar Games[cite: 5]. Designed environmental puzzles, padlocks, light-switch puzzles, jumpscare animations, 3D assets, and produced the official gameplay trailer.
+                            </p>
+                        </div>
+                        <div class="space-y-4 pt-2">
+                            <div class="flex flex-wrap gap-1.5 font-mono text-[11px]">
+                                <span class="px-2 py-0.5 rounded bg-arcade-bg border border-arcade-border text-arcade-textLight">Rockstar Brief</span>
+                                <span class="px-2 py-0.5 rounded bg-arcade-bg border border-arcade-border text-arcade-textLight">Puzzle Design</span>
+                                <span class="px-2 py-0.5 rounded bg-arcade-bg border border-arcade-border text-arcade-textLight">Trailer Production</span>
+                            </div>
+                            <div class="pt-2 border-t border-arcade-border/60 flex items-center justify-between gap-2">
+                                <button onclick="openProjectModal('blackmass'); sfx.playSelect()" class="flex-1 px-3 py-1.5 rounded bg-arcade-card border border-arcade-green/40 hover:border-arcade-green text-arcade-green font-pixel text-[10px] hover:shadow-glow transition-all flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-eye"></i> DETAILS
+                                </button>
+                                <a href="https://nicolemeenan.itch.io" target="_blank" onclick="sfx.playSelect()" class="flex-1 px-3 py-1.5 rounded bg-arcade-green/10 border border-arcade-green text-arcade-green font-pixel text-[10px] hover:bg-arcade-green hover:text-arcade-textDark transition-all flex items-center justify-center gap-1.5">
+                                    <i class="fa-brands fa-itch-io"></i> ITCH.IO
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Alicia in Fantasyland -->
+                <div class="project-card bg-arcade-card border border-arcade-border rounded-xl overflow-hidden hover:border-arcade-green transition-all flex flex-col group" data-category="solo">
+                    <div class="relative aspect-video overflow-hidden bg-black/60">
+                        <img src="Screenshot 2024-05-11 133027.png" 
+                             alt="Alicia in Fantasyland - Unreal Engine Level Blockout" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-gradient-to-t from-arcade-card via-transparent to-transparent"></div>
+                        <span class="absolute top-3 left-3 bg-arcade-green text-arcade-textDark font-pixel text-[9px] px-2 py-0.5 rounded shadow">UNREAL ENGINE 5 LEVEL & MECHANIC DESIGN</span>
+                    </div>
+                    <div class="p-6 space-y-4 flex-1 flex flex-col justify-between">
+                        <div class="space-y-2">
+                            <h3 class="font-pixel text-base text-arcade-textLight group-hover:text-arcade-green transition-colors">ALICIA IN FANTASYLAND</h3>
+                            <p class="text-xs font-mono text-arcade-green">Role: Level Designer & Blueprint Programmer</p>
+                            <p class="text-sm font-sans text-arcade-textMuted leading-relaxed">
+                                A 3D single-player action-adventure level inspired by Alice in Wonderland. Features size-manipulation mechanics where player scale dictates navigation, jump heights, and puzzle-solving across a whimsical castle environment.
+                            </p>
+                        </div>
+                        <div class="space-y-4 pt-2">
+                            <div class="flex flex-wrap gap-1.5 font-mono text-[11px]">
+                                <span class="px-2 py-0.5 rounded bg-arcade-bg border border-arcade-border text-arcade-textLight">UE5 Blueprints</span>
+                                <span class="px-2 py-0.5 rounded bg-arcade-bg border border-arcade-border text-arcade-textLight">Level Design</span>
+                                <span class="px-2 py-0.5 rounded bg-arcade-bg border border-arcade-border text-arcade-textLight">UX Research</span>
+                            </div>
+                            <div class="pt-2 border-t border-arcade-border/60 grid grid-cols-3 gap-2">
+                                <button onclick="openProjectModal('alicia'); sfx.playSelect()" class="px-2 py-1.5 rounded bg-arcade-card border border-arcade-green/40 hover:border-arcade-green text-arcade-green font-pixel text-[9px] hover:shadow-glow transition-all flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-eye"></i> DETAILS
+                                </button>
+                                <a href="AliciaFantasyland_Brief.pdf" download="AliciaFantasyland_Brief.pdf" onclick="sfx.playSelect()" class="px-2 py-1.5 rounded bg-arcade-green/10 border border-arcade-green text-arcade-green font-pixel text-[9px] hover:bg-arcade-green hover:text-arcade-textDark transition-all flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-file-pdf"></i> PDF
+                                </a>
+                                <a href="https://nicolemeenan.itch.io" target="_blank" onclick="sfx.playSelect()" class="px-2 py-1.5 rounded bg-arcade-green/10 border border-arcade-green text-arcade-green font-pixel text-[9px] hover:bg-arcade-green hover:text-arcade-textDark transition-all flex items-center justify-center gap-1">
+                                    <i class="fa-brands fa-itch-io"></i> ITCH.IO
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. 3 Game Jams -->
+                <div class="project-card bg-arcade-card border border-arcade-border rounded-xl overflow-hidden hover:border-arcade-green transition-all flex flex-col group" data-category="solo">
+                    <div class="relative aspect-video overflow-hidden bg-black/60">
+                        <img src="Screenshot 2024-12-16 222156.png" 
+                             alt="3 Game Jams - Get Down to Groove Gameplay" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-gradient-to-t from-arcade-card via-transparent to-transparent"></div>
+                        <span class="absolute top-3 left-3 bg-arcade-green text-arcade-textDark font-pixel text-[9px] px-2 py-0.5 rounded shadow">FAST-PACED GAME JAMS</span>
+                    </div>
+                    <div class="p-6 space-y-4 flex-1 flex flex-col justify-between">
+                        <div class="space-y-2">
+                            <h3 class="font-pixel text-base text-arcade-textLight group-hover:text-arcade-green transition-colors">3 GAME JAMS</h3>
+                            <p class="text-xs font-mono text-arcade-green">Role: Game Designer & Programmer (Get Down to Groove!)</p>
+                            <p class="text-sm font-sans text-arcade-textMuted leading-relaxed">
+                                Collaborated across three rapid-development jams focusing on gameplay balancing, programming, and 2D art. Took sole programming responsibility for *Get Down to Groove!*, achieving a Top 3 placement[cite: 2].
+                            </p>
+                        </div>
+                        <div class="space-y-4 pt-2">
+                            <div class="flex flex-wrap gap-1.5 font-mono text-[11px]">
+                                <span class="px-2 py-0.5 rounded bg-arcade-bg border border-arcade-border text-arcade-textLight">Rapid Jams</span>
+                                <span class="px-2 py-0.5 rounded bg-arcade-bg border border-arcade-border text-arcade-textLight">Top 3 Placement</span>
+                                <span class="px-2 py-0.5 rounded bg-arcade-bg border border-arcade-border text-arcade-textLight">Balancing</span>
+                            </div>
+                            <div class="pt-2 border-t border-arcade-border/60 grid grid-cols-3 gap-2">
+                                <button onclick="openProjectModal('jams'); sfx.playSelect()" class="px-2 py-1.5 rounded bg-arcade-card border border-arcade-green/40 hover:border-arcade-green text-arcade-green font-pixel text-[9px] hover:shadow-glow transition-all flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-eye"></i> DETAILS
+                                </button>
+                                <a href="GameJams_Portfolio.pdf" download="GameJams_Portfolio.pdf" onclick="sfx.playSelect()" class="px-2 py-1.5 rounded bg-arcade-green/10 border border-arcade-green text-arcade-green font-pixel text-[9px] hover:bg-arcade-green hover:text-arcade-textDark transition-all flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-file-pdf"></i> PDF
+                                </a>
+                                <a href="https://nicolemeenan.itch.io" target="_blank" onclick="sfx.playSelect()" class="px-2 py-1.5 rounded bg-arcade-green/10 border border-arcade-green text-arcade-green font-pixel text-[9px] hover:bg-arcade-green hover:text-arcade-textDark transition-all flex items-center justify-center gap-1">
+                                    <i class="fa-brands fa-itch-io"></i> ITCH.IO
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Levels of Fear -->
+                <div class="project-card bg-arcade-card border border-arcade-border rounded-xl overflow-hidden hover:border-arcade-green transition-all flex flex-col group" data-category="solo">
+                    <div class="relative aspect-video overflow-hidden bg-black/60">
+                        <img src="Screenshot 2026-09-03 172047.png" 
+                             alt="Levels of Fear - Horror Hallway Stalker" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-gradient-to-t from-arcade-card via-transparent to-transparent"></div>
+                        <span class="absolute top-3 left-3 bg-arcade-green text-arcade-textDark font-pixel text-[9px] px-2 py-0.5 rounded shadow">HORROR LEVEL & MECHANIC DESIGN</span>
+                    </div>
+                    <div class="p-6 space-y-4 flex-1 flex flex-col justify-between">
+                        <div class="space-y-2">
+                            <h3 class="font-pixel text-base text-arcade-textLight group-hover:text-arcade-green transition-colors">LEVELS OF FEAR</h3>
+                            <p class="text-xs font-mono text-arcade-green">Role: Level Designer & Blueprint Scripter</p>
+                            <p class="text-sm font-sans text-arcade-textMuted leading-relaxed">
+                                A multi-story psychological horror experience where each floor represents a distinct phobia accessed via functional elevators[cite: 4]. Features custom UE5 Blueprints for line-of-sight AI stalking mechanics, door timelines, and atmospheric lighting[cite: 4].
+                            </p>
+                        </div>
+                        <div class="space-y-4 pt-2">
+                            <div class="flex flex-wrap gap-1.5 font-mono text-[11px]">
+                                <span class="px-2 py-0.5 rounded bg-arcade-bg border border-arcade-border text-arcade-textLight">UE5 Blueprints</span>
+                                <span class="px-2 py-0.5 rounded bg-arcade-bg border border-arcade-border text-arcade-textLight">Horror Design</span>
+                                <span class="px-2 py-0.5 rounded bg-arcade-bg border border-arcade-border text-arcade-textLight">AI Stalking</span>
+                            </div>
+                            <div class="pt-2 border-t border-arcade-border/60 grid grid-cols-3 gap-2">
+                                <button onclick="openProjectModal('fear'); sfx.playSelect()" class="px-2 py-1.5 rounded bg-arcade-card border border-arcade-green/40 hover:border-arcade-green text-arcade-green font-pixel text-[9px] hover:shadow-glow transition-all flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-eye"></i> DETAILS
+                                </button>
+                                <a href="LevelsOfFear_DesignDoc.pdf" download="LevelsOfFear_DesignDoc.pdf" onclick="sfx.playSelect()" class="px-2 py-1.5 rounded bg-arcade-green/10 border border-arcade-green text-arcade-green font-pixel text-[9px] hover:bg-arcade-green hover:text-arcade-textDark transition-all flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-file-pdf"></i> PDF
+                                </a>
+                                <a href="https://nicolemeenan.itch.io" target="_blank" onclick="sfx.playSelect()" class="px-2 py-1.5 rounded bg-arcade-green/10 border border-arcade-green text-arcade-green font-pixel text-[9px] hover:bg-arcade-green hover:text-arcade-textDark transition-all flex items-center justify-center gap-1">
+                                    <i class="fa-brands fa-itch-io"></i> ITCH.IO
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- LEVEL 5: CONTACT & FOOTER -->
+        <section id="contact" class="space-y-6 pt-4">
+            <div class="flex items-center space-x-3 border-b border-arcade-border pb-3">
+                <span class="px-2.5 py-1 bg-arcade-green text-arcade-textDark font-pixel text-xs rounded">LVL 5</span>
+                <h2 class="font-pixel text-lg sm:text-xl text-arcade-textLight">SELECT PLAYER // CONTACT</h2>
+            </div>
+
+            <div class="bg-arcade-card border border-arcade-border rounded-xl p-6 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div class="lg:col-span-5 space-y-4">
+                    <h3 class="font-pixel text-xs text-arcade-green">TRANSMIT A MESSAGE</h3>
+                    <p class="text-sm font-sans text-arcade-textMuted leading-relaxed">
+                        Ready to discuss design opportunities or game development collaborations? Reach out below!
+                    </p>
+                    <div class="space-y-3 font-mono text-xs pt-2">
+                        <div class="flex items-center gap-3 text-arcade-textLight">
+                            <div class="w-8 h-8 rounded bg-arcade-bg border border-arcade-border flex items-center justify-center text-arcade-green">
+                                <i class="fa-solid fa-envelope"></i>
+                            </div>
+                            <span>n.meenan@sky.com</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-arcade-textLight">
+                            <div class="w-8 h-8 rounded bg-arcade-bg border border-arcade-border flex items-center justify-center text-arcade-green">
+                                <i class="fa-solid fa-phone"></i>
+                            </div>
+                            <span>07522 427545</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-arcade-textLight">
+                            <div class="w-8 h-8 rounded bg-arcade-bg border border-arcade-border flex items-center justify-center text-arcade-green">
+                                <i class="fa-solid fa-location-dot"></i>
+                            </div>
+                            <span>Salford, M5 4PF</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-arcade-textLight">
+                            <div class="w-8 h-8 rounded bg-arcade-bg border border-arcade-border flex items-center justify-center text-arcade-green">
+                                <i class="fa-brands fa-linkedin-in"></i>
+                            </div>
+                            <span>linkedin.com/in/nicole-meenan-a23371371</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-7">
+                    <!-- CONNECTED TO FORMSPREE BACKEND -->
+                    <form action="https://formspree.io/f/mdeevowe" method="POST" class="space-y-4 font-mono text-xs">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label class="text-arcade-textMuted block">PLAYER NAME</label>
+                                <input type="text" name="name" required placeholder="e.g. Recruiter" class="w-full bg-arcade-bg border border-arcade-border rounded px-3 py-2 text-arcade-textLight focus:outline-none focus:border-arcade-green transition-colors">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-arcade-textMuted block">FREQUENCY (EMAIL)</label>
+                                <input type="email" name="email" required placeholder="name@domain.com" class="w-full bg-arcade-bg border border-arcade-border rounded px-3 py-2 text-arcade-textLight focus:outline-none focus:border-arcade-green transition-colors">
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-arcade-textMuted block">TRANSMISSION CONTENT</label>
+                            <textarea name="message" rows="4" required placeholder="Write your message here..." class="w-full bg-arcade-bg border border-arcade-border rounded px-3 py-2 text-arcade-textLight focus:outline-none focus:border-arcade-green transition-colors"></textarea>
+                        </div>
+                        <button type="submit" onclick="sfx.playSelect()" class="w-full py-3 rounded bg-arcade-green text-arcade-textDark font-pixel text-xs font-bold hover:bg-arcade-greenHover hover:shadow-glow transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-paper-plane"></i> SEND TRANSMISSION
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-arcade-border/80 bg-arcade-card/50 mt-20 py-8 px-4 text-center font-mono text-xs text-arcade-textMuted">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p>© 2026 Nicole Meenan // Creative Game Designer.</p>
+            <div class="flex items-center space-x-4">
+                <a href="https://linkedin.com/in/nicole-meenan-a23371371" target="_blank" onclick="sfx.playClick()" class="hover:text-arcade-green transition-colors"><i class="fa-brands fa-linkedin text-base"></i></a>
+                <a href="https://nicolemeenan.itch.io" target="_blank" onclick="sfx.playClick()" class="hover:text-arcade-green transition-colors"><i class="fa-brands fa-itch-io text-base"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- PROJECT DETAIL MODAL -->
+    <div id="project-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-arcade-card border-2 border-arcade-green rounded-xl max-w-2xl w-full p-6 space-y-6 relative shadow-pixelCard max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-arcade-border pb-3">
+                <h3 id="modal-title" class="font-pixel text-xs sm:text-sm text-arcade-green">PROJECT DETAILS</h3>
+                <button onclick="closeProjectModal(); sfx.playClick()" class="text-arcade-textMuted hover:text-arcade-green text-base font-bold px-2 py-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div id="modal-body" class="space-y-4 font-sans text-sm text-arcade-textLight">
+                <!-- Dynamic Content injected via JS -->
+            </div>
+
+            <div class="border-t border-arcade-border pt-4 flex justify-end">
+                <button onclick="closeProjectModal(); sfx.playClick()" class="px-4 py-2 bg-arcade-bg border border-arcade-border text-arcade-textLight font-mono text-xs rounded hover:border-arcade-green transition-all">
+                    CLOSE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        const projectDetailsData = {
+            ophelia: {
+                title: "OPHELIA // HONORS PROJECT",
+                html: `
+                    <p class="text-xs text-arcade-textMuted">Role: Solo Developer (Unity C#, 2D Art, Narrative, Audio)</p>
+                    <p>Independently designed and developed a complete game exploring societal expectations placed on women through a surreal psychological-horror experience.</p>
+                    <div class="bg-arcade-bg p-3 rounded border border-arcade-border space-y-1 font-mono text-xs">
+                        <p class="text-arcade-green font-semibold">Recognition & Highlights:</p>
+                        <p>• Nominated for the TIGA Graduate of the Year Award (Production & Enterprise).</p>
+                        <p>• Utilized player discomfort and uncertainty as deliberate design tools.</p>
+                    </div>
+                `
+            },
+            blackmass: {
+                title: "BLACK MASS // ROCKSTAR GAMES PROJECT",
+                html: `
+                    <p class="text-xs text-arcade-textMuted">Role: 3D Artist, Animator, Puzzle Designer & Trailer Producer</p>
+                    <p>Collaborated within a multidisciplinary team to develop a first-person psychological horror game for Rockstar Games[cite: 5].</p>
+                    <div class="bg-arcade-bg p-3 rounded border border-arcade-border space-y-1 font-mono text-xs">
+                        <p class="text-arcade-green font-semibold">Key Contributions:</p>
+                        <p>• Designed environmental puzzles including padlock and light-switch mechanisms.</p>
+                        <p>• Created jumpscare animations and integrated 3D assets.</p>
+                        <p>• Produced the official gameplay trailer showcasing core progression and tension.</p>
+                    </div>
+                `
+            },
+            alicia: {
+                title: "ALICIA IN FANTASYLAND // DES311",
+                html: `
+                    <p class="text-xs text-arcade-textMuted">Role: Level Designer & Blueprint Programmer</p>
+                    <p>Developed in Unreal Engine 5, this project explores size-manipulation mechanics combined with linear castle level design.</p>
+                    <div class="bg-arcade-bg p-3 rounded border border-arcade-border space-y-1 font-mono text-xs">
+                        <p class="text-arcade-green font-semibold">Technical Highlights:</p>
+                        <p>• UE5 Blueprints for player scale scaling and timeline transitions.</p>
+                        <p>• UX research, playtesting iterations, and visual language consistency.</p>
+                    </div>
+                `
+            },
+            jams: {
+                title: "3 GAME JAMS // RAPID PROTOTYPING",
+                html: `
+                    <p class="text-xs text-arcade-textMuted">Role: Game Designer & Programmer</p>
+                    <p>Participated in three rapid-development game jams, contributing to design, programming, balancing, and 2D art under tight deadlines.</p>
+                    <div class="bg-arcade-bg p-3 rounded border border-arcade-border space-y-1 font-mono text-xs">
+                        <p class="text-arcade-green font-semibold">Key Highlights:</p>
+                        <p>• Took sole programming responsibility for *Get Down to Groove!*[cite: 2].</p>
+                        <p>• Helped the team achieve a Top 3 placement[cite: 2].</p>
+                    </div>
+                `
+            },
+            fear: {
+                title: "LEVELS OF FEAR // DES205",
+                html: `
+                    <p class="text-xs text-arcade-textMuted">Role: Level Designer & Blueprint Scripter</p>
+                    <p>A psychological horror level exploring phobias across multiple floors accessed via functional elevators[cite: 4].</p>
+                    <div class="bg-arcade-bg p-3 rounded border border-arcade-border space-y-1 font-mono text-xs">
+                        <p class="text-arcade-green font-semibold">Technical Highlights:</p>
+                        <p>• Unreal Engine 5 Blueprints for door timelines, flickering lights, and jumpscares[cite: 4].</p>
+                        <p>• AI line-of-sight perception mechanics where creatures stalk or freeze when looked at[cite: 4].</p>
+                    </div>
+                `
+            }
+        };
+
+        function openProjectModal(key) {
+            const data = projectDetailsData[key];
+            if (!data) return;
+            document.getElementById('modal-title').innerText = data.title;
+            document.getElementById('modal-body').innerHTML = data.html;
+            document.getElementById('project-modal').classList.remove('hidden');
+        }
+
+        function closeProjectModal() {
+            document.getElementById('project-modal').classList.add('hidden');
+        }
+
+        function filterProjects(category) {
+            const buttons = document.querySelectorAll('.filter-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('active', 'border-arcade-green', 'bg-arcade-green/20', 'text-arcade-green');
+                btn.classList.add('border-arcade-border', 'text-arcade-textMuted');
+            });
+            event.target.classList.add('active', 'border-arcade-green', 'bg-arcade
